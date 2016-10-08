@@ -2,7 +2,7 @@
 
 This is the manifest of things I've learned about managing CSS in large, complex web projects during my 10+ years of professional web development. I've been asked about these things enough times that having a document to point to sounded like a good idea.
 
-I've tried to keep the explanations short, but if you're only interested in the *what* and not the *why*, **there's a tl;dr section at the end** which reiterates the rules with as much brevity as possible.
+I've tried to keep the explanations short, but if you're only interested in the *what* and not the *why*, **there's a tl;dr section at the end** which reiterates the rules more compactly.
 
 ## Introduction
 
@@ -19,8 +19,8 @@ So we're after a robust, scalable CSS architecture. But what properties does tha
 
 * **Component oriented** - The best way to deal with UI complexity is to split the UI into smaller components. If you're using a sensible framework, the JavaScript side of this will come naturally. [React](https://facebook.github.io/react/), for instance, encourages a high level of componentization and compartmentalization. We want a CSS architecture to match.
 * **Sandboxed** - Splitting the UI into components won't help our congnitive load if touching the styles of one component can have unwanted and unpredictable effects on another. Fundamental CSS features such as the [cascade](https://developer.mozilla.org/en/docs/Web/Guide/CSS/Getting_started/Cascading_and_inheritance), and a single, global namespace for identifiers actively work against you in this regard. If you're familiar with the [Web Components spec](https://developer.mozilla.org/en-US/docs/Web/Web_Components), think of this as getting the [style isolation benefits of the Shadow DOM](http://www.html5rocks.com/en/tutorials/webcomponents/shadowdom-201/) without having to care about browser support (or whether or not the spec ever gets serious traction).
-* **Convenient** - What do we want? *All the nice things!* When do we want them? *Now!* Do we want to work for it? *No!* That is, we don't want to make our developer experience any worse by adopting this architecture.
-* **Err on the side of safety** - Somewhat related to the previous point, we want our styles to be *local by default*, and global only as an exception. We engineers are lazy people, and the path of least resistance always needs to point to the correct solution.
+* **Convenient** - We want all the nice things, and we don't want to work for them. That is, we don't want to make our developer experience any worse by adopting this architecture. If possible, we want to make better.
+* **Err on the side of safety** - Somewhat related to the previous point, we want our everything to be *local by default*, and global only as an exception. We engineers are lazy people, and the path of least resistance always needs to point to the correct solution.
 
 ## Concrete rules
 
@@ -28,31 +28,29 @@ So we're after a robust, scalable CSS architecture. But what properties does tha
 
 This is just to get the obvious out of the way.
 
-Do not target ID's (e.g. `#header`), for whenever you think there can be only one instance of something, [on an infinite timescale](https://twitter.com/stedwick/status/525777867146539009), you'll be proven wrong. One past example of this was when we wanted to weed out any data-binding bugs on a large application we were working on. We started two instances of our entire UI, side-by-side in the same DOM, both bound to a *shared* instance of our data model. This was to make sure that all changes in the data model were correctly reflected in both UI's. Any components that you might have assumed to always be unique, such as a header bar, no longer are (this is a great benchmark for surfacing other subtle bugs related to assumptions about uniqueness, by the way). The moral of the story is: there's no situation where targeting an ID would be a *better* idea than targeting a class, so let's just not, ever.
+Do not target ID's (e.g. `#header`), because whenever you think there can be only one instance of something, [on an infinite timescale](https://twitter.com/stedwick/status/525777867146539009), you'll be proven wrong. One past example of this was when we wanted to weed out any data-binding bugs on a large application we were working on. We started two instances of our UI code, side-by-side in the same DOM, both bound to a *shared* instance of our data model. This was to make sure that all changes in the data model were correctly reflected in both UI's. Any components that you might have assumed to always be unique, such as a header bar, no longer are. This is a great benchmark for surfacing other subtle bugs related to assumptions about uniqueness too, by the way. I digress, but the moral of the story is: there's no situation where targeting an ID would be a *better* idea than targeting a class, so let's just not, ever.
 
-Neither should you target elements (e.g. `p`) directly. It's often OK to target elements that *belong to a component* (see below), but on their own, eventually you'll end up having to [undo those styles](http://csswizardry.com/2012/11/code-smells-in-css/) for a component that doesn't want them. Recalling our high level goals, this also goes against just about all of them. Setting things like fonts, line-heights and colors (a.k.a [inherited properties](https://developer.mozilla.org/en-US/docs/Web/CSS/inheritance)) on `body` *can* be the exception to this rule if you so choose, but if you're serious about component isolation, it's completely feasible to forgo even these (see below about working with external styles).
+Neither should you target elements (e.g. `p`) directly. It's often OK to target elements that *belong to a component* (see below), but on their own, eventually you'll end up having to [undo those styles](http://csswizardry.com/2012/11/code-smells-in-css/) for a component that doesn't want them. Recalling our high level goals, this also goes against just about all of them (component-orientedness, avoiding the cascade like the plague, and being local by default). Setting things like fonts, line-heights and colors (a.k.a [inherited properties](https://developer.mozilla.org/en-US/docs/Web/CSS/inheritance)) on `body` *can* be the exception to this rule if you so choose, but if you're serious about component isolation, it's completely feasible to forgo even these (see below about working with external styles).
 
 So with very few exceptions, your styles should always target a class.
 
 ### 2. Co-locate component code
 
-When working on a component, it helps tremendously if everything related to that component -- its JavaScript, styles, tests, documentation, etc -- lives very close to each other. :
+When working on a component, it helps tremendously if everything related to that component -- its JavaScript, styles, tests, documentation, etc -- live very close to each other:
 
 ```
 ui/
 ├── layout/
-|   ├── Header.js
-|   ├── Header.scss
-|   ├── Header.spec.js
-|   └── Header.fixtures.json
+|   ├── Header.js              // component code
+|   ├── Header.scss            // component styles
+|   ├── Header.spec.js         // component-specific unit tests
+|   └── Header.fixtures.json   // any mock data the component tests might need
 ├── utils/
-|   ├── Button.md
-|   ├── Button.js
+|   ├── Button.md              // usage documentation for the component
+|   ├── Button.js              // ...and so on, you get the idea
 |   └── Button.scss
 ```
 
-TODO: Ihan uteliaisuudesta, mikä on Header.fixtures.json?
- 
 When you're working in the code, simply open your project browser, and all other aspects of the component are at your fingertips. There's a natural coupling between the styles and the JavaScript that produces your DOM, and it's a fair bet you'll be touching one soon after touching the other. Think of this as the [locality of reference principle](https://en.wikipedia.org/wiki/Locality_of_reference) for UI components. I, too, used to meticulously maintain separate mirrors of my source tree under `styles/`, `tests/`, `docs/` etc, until I realized that literally the only reason I kept doing that was because that's how I'd always done it.
 
 As an additional benefit, if you're working in the browser, and you spot a component that's misbehaving, you can right-click-Inspect it, and you'll see for instance:
