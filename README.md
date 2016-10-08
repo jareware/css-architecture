@@ -51,35 +51,39 @@ ui/
 |   └── Button.scss
 ```
 
-When you're working in the code, simply open your project browser, and all other aspects of the component are at your fingertips. There's a natural coupling between the styles and the JavaScript that produces your DOM, and it's a fair bet you'll be touching one soon after touching the other. Think of this as the [locality of reference principle](https://en.wikipedia.org/wiki/Locality_of_reference) for UI components. I, too, used to meticulously maintain separate mirrors of my source tree under `styles/`, `tests/`, `docs/` etc, until I realized that literally the only reason I kept doing that was because that's how I'd always done it.
+When you're working in the code, simply open your project browser, and all other aspects of the component are at your fingertips. There's a natural coupling between the styles and the JavaScript that produces your DOM, and it's a fair bet you'll be touching one soon after touching the other. The same applies to a component and its tests, for example. Think of this as the [locality of reference principle](https://en.wikipedia.org/wiki/Locality_of_reference) for UI components. I, too, used to meticulously maintain separate mirrors of my source tree under `styles/`, `tests/`, `docs/` etc, until I realized that literally the only reason I kept doing that was because that's how I'd always done it.
 
-As an additional benefit, if you're working in the browser, and you spot a component that's misbehaving, you can right-click-Inspect it, and you'll see for instance:
+### 3. Consistent class namespacing
+
+CSS has a single, flat namespace for class names and other identifiers (such as ID's, animation names, etc). Just like in the PHP days of old, the community has dealt with this by simply using longer, structured names, thus emulating namespaces ([BEM](http://getbem.com/) is an example). We'll want to choose a namespacing convention, and stick with it.
+
+For instance, let's say we use `myapp-Header-link` as a class name. Each of its 3 parts have a specific function:
+
+* `myapp` to first isolate our app from other apps possibly running on the same DOM
+* `Header` to isolate the component from other components in the app
+* `link` to reserve a local name (within the component's namespace) for our local styling purposes
+
+Whatever namespacing convention we choose, we'll want to be consistent about it. In addition to each of the 3 parts having a specific *function*, they'll also have a specific *meaning*. Just by looking at a class, you'll know where it belongs. The namespacing will be the map by which we navigate the styles of our project.
+
+From now on I'll assume the namespacing scheme of `app-Component-class`, which I've personally found to work really well, but you can of course also come up with your own.
+
+### 3.5 Strict mapping between namespaces and filenames
+
+This is just the logical combination of the preceding two rules (co-locating component code, and class namespacing): all styles affecting a specific component should go to a file named after the component. No exceptions.
+
+If you're working in the browser, and you spot a component that's misbehaving, you can right-click-Inspect it, and you'll see for instance:
 
 ```html
 <div class="myapp-Header">...</div>
 ```
 
-Noting the name of the component -- `Header` in this case -- you switch to your editor, hit the key combo for "Quick open file", start typing "head", and there you go:
+Noting the name of the component you switch to your editor, hit the key combo for "Quick open file", start typing "head", and there you go:
 
 ![quick-open-file](quick-open-file.png)
 
-This strict 1:1 mapping between UI components and files is doubly useful if you're new on the team, and don't know the architecture by heart yet: you don't need to, to be able to find the guts of the thing you're supposed to work on.
+This strict mapping from UI components to the corresponding source files is doubly useful if you're new on the team and don't know the architecture by heart yet: you don't need to, to be able to find the guts of the thing you're supposed to work on.
 
-### 3. Consistent class namespacing
-
-CSS has a single, flat namespace for class names and other identifiers (such as ID's, animation names, etc). Just like in the PHP days of old, the community has dealt with this by simply using longer, structured names, thus emulating namespaces. We'll want to choose a namespacing convention, and stick with it.
-
-For instance, we could use `myapp-Header-link` as a class name:
-
-* `myapp` to first isolate our app from other apps possibly running on the same DOM
-* `Header` to isolate the component from other components in the app
-* `link` to reserve a local name (within the component's namespace) for our styling purposes
-
-Whatever namespacing convention we choose, we'll want to be consistent about it. It'll be the map by which we navigate the styles of our project.
-
-As a corollary to the previous rule, we will also lose the magic of the simple 1:1 mapping between components and their code unless we also decide that a single file only contains styles belonging to a single namespace. Say we have a login form, that's only used within the `Header` component. On the JavaScript side, it's defined as a helper component within `Header.js`, and not exported anywhere. It might be tempting to declare a class name `myapp-LoginForm`, and sneak that into both `Header.js` and `Header.scss`. But [this is not 'nam, this is engineering, there are rules](https://www.youtube.com/watch?v=WiQmQhA-OrM). Now the new guy on the team might be tasked to fix a small layout issue in the login form, and inspects the element to figure out the culprit component. But there is no `LoginForm.js` nor `LoginForm.scss` to be found, and the new guy has to resort to `grep` or guesswork to find the relevant source files. If the login form warrants a separate namespace, split it into a separate component. Consistency is worth its weight in gold in projects of non-trivial size.
-
-From now on I'll assume the namespacing scheme of `app-Component-class`, which I've personally found to work really well, but you can of course also come up with your own.
+There's a natural (but perhaps not immediately obvious) corollary to this: a single style file should only contain styles belonging to a single namespace. Why? Say we have a login form, that's only used within the `Header` component. On the JavaScript side, it's defined as a helper component within `Header.js`, and not exported anywhere. It might be tempting to declare a class name `myapp-LoginForm`, and sneak that into both `Header.js` and `Header.scss`. But let's say the new guy on the team is be tasked to fix a small layout issue in the login form, and inspects the element to figure out where to start. There is no `LoginForm.js` or `LoginForm.scss` to be found, and he has to resort to `grep` or guesswork to find the relevant source files. That is to say, if the login form warrants a separate namespace, split it into a separate component. Consistency is worth its weight in gold in projects of non-trivial size.
 
 ### 4. Prevent leaking styles outside the component
 
@@ -146,7 +150,7 @@ Which compiles to:
 }
 ```
 
-Even media queries work very conveniently, as long as your preprocessor supports bubbling (SASS, LESS, PostCSS and Stylus all do):
+Even media queries work conveniently, as long as your preprocessor supports bubbling (SASS, LESS, PostCSS and Stylus all do):
 
 ```scss
 .myapp-Header {
@@ -175,7 +179,37 @@ Which becomes:
 }
 ```
 
-TODO: TOOLING HELPS css-ns
+The above pattern makes it very convenient to use long, unique class names without having to keep typing them over and over again. Convenience is mandatory, because without convenience, there will be cutting of corners.
+
+#### Quick aside on the JS side of things
+
+This document is about styling conventions, but the styles don't exist in a vacuum: our JS side will need to produce the same namespaced class names, and convenience is mandatory there as well.
+
+As a shameless plug, I have created a very simple, 0-dependency JS library for exactly this, called [`css-ns`](https://github.com/jareware/css-ns). When combined at the framework level ([with e.g. React](https://github.com/jareware/css-ns#use-with-react)), it allows you to **enforce** a specific namespace within a specific file:
+
+```js
+// Create a namespace-bound local copy of React:
+var { React } = require('./config/css-ns')('Header');
+
+// Create some elements:
+<div className="signup">
+  <div className="intro">...</div>
+  <div className="link">...</div>
+</div>
+```
+
+Will render into the DOM as:
+
+```html
+<div class="myapp-Header-signup">
+  <div class="myapp-Header-intro">...</div>
+  <div class="myapp-Header-link">...</div>
+</div>
+```
+
+This is very convenient, and above all makes the JS side *local by default*.
+
+But again, I digress. Back to the CSS side of things.
 
 ### 5. Prevent leaking styles inside the component
 
@@ -202,7 +236,13 @@ And the following component hierarchy:
 +-------------------------+
 ```
 
-We're cool, right? Only the `<a>` elements inside `Header` get [blued](https://www.youtube.com/watch?v=axHe_BVY_9c), because the rule we generate is `.myapp-Header a { color: blue }`. But consider the layout is later changed to:
+We're cool, right? Only the `<a>` elements inside `Header` get [blued](https://www.youtube.com/watch?v=axHe_BVY_9c), because the rule we generate is:
+
+```css
+.myapp-Header a { color: blue; }
+```
+
+But consider the layout is later changed to:
 
 ```
 +-----------------------------------------+
@@ -214,9 +254,11 @@ We're cool, right? Only the `<a>` elements inside `Header` get [blued](https://w
 +-----------------------------------------+
 ```
 
-The selector `.myapp-Header a` also matches the `<a>` element inside `LoginForm`, and we've blown our style isolation. This can be avoided in two ways:
+The selector `.myapp-Header a` **also matches** the `<a>` element inside `LoginForm`, and we've blown our style isolation. As it turns out, wrapping all styles in a namespace block is an effective way for isolating a component from its neighbors, **but not always from its children**.
 
-1. Never target element names in stylesheets. If every `<a>` element in `Header` is `<a class="myapp-Header-link">` instead, we'll never have to deal with this issue. Then again, sometimes you have the perfectly semantic markup set up, with the `<article>`s and `<aside>`s and `<td>`s in all the right places, and you don't want to clutter them with extra classes. In that case:
+This can be fixed in two ways:
+
+1. Never target element names in stylesheets. If every `<a>` element in `Header` is `<a class="myapp-Header-link">` instead, we'll never have to deal with this issue. Then again, sometimes you have the perfectly semantic markup set up, with the `<article>`s and `<aside>`s and `<th>`s in all the right places, and you don't want to clutter them with extra classes. In that case:
 1. Only target things outside your namespace with [the `>` combinator](https://developer.mozilla.org/en-US/docs/Web/CSS/Child_selectors).
 
 Adjusted for the latter approach, our styles can be rewritten as:
@@ -243,13 +285,13 @@ If this sounds controversial, let me further bring up your blood pressure by cla
 
 We've been trained to avoid selector nesting (including this stronger form with `>`) like the plague, by [many years' worth of credible advice](http://lmgtfy.com/?q=css+nesting+harmful). But why? The cited reasons boil down to these three:
 
-1. Cascading styles will ruin your day, eventually. The more you nest selectors, the higher the chances of accidentally finding an element which matches the selectors of *more than one compoent*. If you've read this far, you know we've already eliminated this possibility (with strict namespace prefixing, and using strong child selectors where needed).
+1. Cascading styles will ruin your day, eventually. The more you nest selectors, the higher the chances of accidentally finding an element which matches the selectors of *more than one component*. If you've read this far, you know we've already eliminated this possibility (with strict namespace prefixing, and using strong child selectors where needed).
 1. Too much specificity will reduce reusability. The styles written for `nav p a` won't be reusable anywhere else except in that very specific environment. But we specifically *never want this anyway*, in fact, we go out of our way to forbid this method of reusability, as it doesn't play well with our goal of components being isolated from each other.
-1. Too much specificity will make refactorings harder. This has some basis in reality, in that if you only had `.myapp-Header-link`, you could freely move the `<a>` around in your component's HTML, and the same styles will always apply. Whereas with `> nav > p > a` you will need to update the selector to match the link's new location within the component's HTML. But given how we want to assemble our UI from small, well-isolated components, this argument is also rather moot. Sure, if you had to consider the HTML & CSS of your entire application when doing a refactoring, this might be scary. But you're operating in a small sandbox which has some tens of lines of styles, and knowing that nothing outside that sandbox needs to be considered, you can quickly rewrite the entire thing if your refactoring needs it.
+1. Too much specificity will make refactorings harder. This has some basis in reality, in that if you only had `.myapp-Header-link a`, you could freely move the `<a>` around in your component's HTML, and the same styles will always apply. Whereas with `> nav > p > a` you will need to update the selector to match the link's new location within the component's HTML. But given how we want to assemble our UI from small, well-isolated components, this argument is also rather moot. Sure, if you had to consider the HTML & CSS of your entire application when doing a refactoring, this might be scary. But you're operating in a small sandbox which has some tens of lines of styles, and knowing that nothing outside that sandbox needs to be considered, these types of changes become a non-issue.
 
 This is a good example of understanding the rules, so you know when to break them. In our architecture, selector nesting is not only OK, it's sometimes the right thing to do. Go crazy with it.
 
-### An aside for the curious: Prevent leaking styles into the component
+### An aside for the curious: Prevent leaking styles *into* the component
 
 TODO: NOT POSSIBLE w/o Shadow DOM or iframes
 
