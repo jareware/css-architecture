@@ -61,7 +61,7 @@ As an additional benefit, if you're working in the browser, and you spot a compo
 
 Noting the name of the component -- `Header` in this case -- you switch to your editor, hit the key combo for "Quick open file", start typing "head", and there you go:
 
-TODO: IMAGE
+![quick-open-file](quick-open-file.png)
 
 This strict 1:1 mapping between UI components and files is doubly useful if you're new on the team, and don't know the architecture by heart yet: you don't need to, to be able to find the guts of the thing you're supposed to work on.
 
