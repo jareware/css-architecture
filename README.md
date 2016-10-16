@@ -67,7 +67,7 @@ Whatever namespacing convention we choose, we'll want to be consistent about it.
 
 From now on I'll assume the namespacing scheme of `app-Component-class`, which I've personally found to work really well, but you can of course also come up with your own.
 
-### 3.5 Strict mapping between namespaces and filenames
+### 4 Strict mapping between namespaces and filenames
 
 This is just the logical combination of the preceding two rules (co-locating component code, and class namespacing): all styles affecting a specific component should go to a file named after the component. No exceptions.
 
@@ -85,7 +85,7 @@ This strict mapping from UI components to the corresponding source files is doub
 
 There's a natural (but perhaps not immediately obvious) corollary to this: a single style file should only contain styles belonging to a single namespace. Why? Say we have a login form, that's only used within the `Header` component. On the JavaScript side, it's defined as a helper component within `Header.js`, and not exported anywhere. It might be tempting to declare a class name `myapp-LoginForm`, and sneak that into both `Header.js` and `Header.scss`. But let's say the new guy on the team is be tasked to fix a small layout issue in the login form, and inspects the element to figure out where to start. There is no `LoginForm.js` or `LoginForm.scss` to be found, and he has to resort to `grep` or guesswork to find the relevant source files. That is to say, if the login form warrants a separate namespace, split it into a separate component. Consistency is worth its weight in gold in projects of non-trivial size.
 
-### 4. Prevent leaking styles outside the component
+### 5. Prevent leaking styles outside the component
 
 So we've established our namespacing conventions, and now want to use them to sandbox our UI components. If every component only uses class names prefixed with their unique namespace, we can be sure that their styles never leak to their neighbors. This is very effective (see below for the caveats), but having to type the namespace over and over again also gets rather tedious.
 
@@ -211,7 +211,7 @@ This is very convenient, and above all makes the JS side *local by default*.
 
 But again, I digress. Back to the CSS side of things.
 
-### 5. Prevent leaking styles inside the component
+### 6. Prevent leaking styles inside the component
 
 Remember when I said prefixing each class name with the component namespace was a "very effective" way of sandboxing styles? Remember when I said there were "caveats"?
 
@@ -321,7 +321,7 @@ So have we achieved perfect sandboxing of our styles, so that each component can
         |           +-------+ |
         +---------------------+
 
-* But crucially, **styles can still leak into components**:
+* But crucially, **external styles can still leak into components**:
 
               +-------+
               |       |
@@ -362,7 +362,7 @@ Also, I said there's no *simple* way to protect your components from this. That 
 
 Anyway, this aside is running long, back to our list of CSS rules.
 
-### 6. Respect component boundaries
+### 7. Respect component boundaries
 
 Exactly like we styled `.myapp-Header > a`, when we nest components, we may need to apply some styles to child components (the Web Component analogy is again perfect, as then there'd truly be no distinction between how `> a` and `> my-custom-a` work). Consider this layout:
 
@@ -441,7 +441,7 @@ There are a few interesting/boring edge cases, such as:
 
 The important thing to realize is that in these edge cases, you're not risking thermonuclear war, just introducing a tiny bit of the CSS cascade back into your styles. As with other things that are bad for you, enjoying the cascade *in moderation* is fine. For instance, taking a closer look at the last example, the [specificity contest](https://developer.mozilla.org/en-US/docs/Web/CSS/Specificity) works out exactly like you'd want it to: when the component is visible, `.myapp-LoginForm { display: flex }` is the most specific rule, and takes precedence. When the owner decides to hide it with `.myapp-Header-loginBoxHidden > .myapp-LoginBox { display: none }` that rule is more specific, and wins.
 
-### 7. Integrate external styles loosely
+### 8. Integrate external styles loosely
 
 To avoid repetitive work, you sometimes need to share styles between components. To avoid work altogether, you sometimes want to use styles created by others. Both of these should be achieved without creating any unnecessary coupling into the codebase.
 
@@ -498,7 +498,9 @@ Finally, all CSS preprocessors support the concept of [mixins](http://sass-lang.
 
 It should be noted that when dealing with more civilized style frameworks (such as [Bourbon](http://bourbon.io/) or [Foundation](http://foundation.zurb.com/)), they'll in fact be doing just this: declaring a bunch of mixins for you to use where they're needed, and not emitting any styles on their own. [Neat](http://neat.bourbon.io/).
 
-### 8. Know the rules, and when to break them
+## In closing
+
+> Know the rules, so you know when to break them
 
 Finally, as mentioned before, when you understand the rules you've laid out (or adopted from a stranger on the Internet), you can make exceptions that make sense to you. For instance, if you feel that there's added value in using a helper class directly, you can do so:
 
