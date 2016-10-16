@@ -79,7 +79,7 @@ If you're working in the browser, and you spot a component that's misbehaving, y
 
 Noting the name of the component you switch to your editor, hit the key combo for "Quick open file", start typing "head", and there you go:
 
-![quick-open-file](quick-open-file.png)
+![Quick open file](quick-open-file.png)
 
 This strict mapping from UI components to the corresponding source files is doubly useful if you're new on the team and don't know the architecture by heart yet: you don't need to, to be able to find the guts of the thing you're supposed to work on.
 
@@ -179,7 +179,7 @@ Which becomes:
 }
 ```
 
-The above pattern makes it very convenient to use long, unique class names without having to keep typing them over and over again. Convenience is mandatory, because without convenience, there will be cutting of corners.
+The above pattern makes it very convenient to use long, unique class names without having to keep typing them over and over again. Convenience is mandatory, because without convenience, we will cut corners.
 
 #### Quick aside on the JS side of things
 
@@ -293,7 +293,74 @@ This is a good example of understanding the rules, so you know when to break the
 
 ### An aside for the curious: Prevent leaking styles *into* the component
 
-TODO: NOT POSSIBLE w/o Shadow DOM or iframes
+So have we achieved perfect sandboxing of our styles, so that each component can live in total isolation from the rest of the page? As a quick recap:
+
+* We've prevented leaks **out of our components** by prefixing each class name with the component namespace:
+
+        +-------+
+        |       |
+        |    -----X--->
+        |       |
+        +-------+
+
+* By extension, this means we've prevented leaks **between our components**:
+
+        +-------+     +-------+
+        |       |     |       |
+        |    ------X------>   |
+        |       |     |       |
+        +-------+     +-------+
+
+* And we've prevented leaks **into child components** by minding our child selectors:
+
+        +---------------------+
+        |           +-------+ |
+        |           |       | |
+        |    ----X------>   | |
+        |           |       | |
+        |           +-------+ |
+        +---------------------+
+
+* But crucially, **styles can still leak into components**:
+
+              +-------+
+              |       |
+        ---------->   |
+              |       |
+              +-------+
+
+For example, say we have styled our component with:
+
+```scss
+.myapp-Header {
+  > a {
+    color: blue;
+  }
+}
+```
+
+But then we include an ill-behaving 3rd party library which introduces the following CSS:
+
+```css
+a {
+  font-family: "Comic Sans";
+}
+```
+
+**There is no simple way to protect your components from such external abuse**, and this is where we often need to just:
+
+![Give up](give-up.gif)
+
+Luckily, you often have some control over the dependencies you use, and can simply look for a more well-behaved alternative.
+
+Also, I said there's no *simple* way to protect your components from this. That doesn't mean there aren't ways. [There are ways, dude](https://www.youtube.com/watch?v=20wUS_bbOHY), they just come with various trade-offs:
+
+* Just brute-forcing it: if you include a [CSS reset](http://cssreset.com/what-is-a-css-reset/) *for every element of every component*, and attach it to a selector that always wins over the 3rd party ones, you're golden. But unless your application is tiny (say, a "Like" button 3rd parties can embed onto their sites), this approach quickly spirals out of control. This is rarely a good idea, it's just listed here for completeness.
+* [`all: initial`](https://developer.mozilla.org/en/docs/Web/CSS/all) is a less known new CSS property designed for exactly this. It can [stop inherited properties from flowing in](https://jsfiddle.net/0d9htatc/), and also work as a local reset, [as long as it wins the specificity war](https://jsfiddle.net/e7rw4L8L/) (and as long as you repeat it for each element you want to protect). Its implementation includes [some intricacies](https://speakerdeck.com/csswizardry/refactoring-css-without-losing-your-mind?slide=39) and [isn't yet supported](http://caniuse.com/#feat=css-all) everywhere, but `all: initial` might eventually become a useful tool for style isolation.
+* Shadow DOM has already been mentioned, and it's exactly the tool you would want for this job, as it allows declaring clear component boundaries for both JS and CSS. Despite [some recent glimmers of hope](https://developer.apple.com/library/content/releasenotes/General/WhatsNewInSafari/Articles/Safari_10_0.html), the Web Components spec hasn't made great progress in recent years, and unless you're working with a known set of browsers you can't really count on the Shadow DOM.
+* Finally, there's the `<iframe>`. It offers the strongest form of isolation the web runtime can offer (both for JS and CSS), but also carries steep penalties in startup cost (CPU cycles) and maintenance cost (retained memory). Still, oftentimes the trade-off is worth it, and most prominent web embeds (Facebook, Twitter, Disqus, etc) are in fact implemented with iframes. For the purposes of this document however -- isolating hundreds or thousands of small components from each other -- this approach would blow our performance budget a 100 times over.
+
+Anyway, this aside is running long, back to our list of CSS rules.
 
 ### 6. Respect component boundaries
 
@@ -333,24 +400,25 @@ The pragmatic solution to this is to (partially) relax our previous rule of only
 }
 ```
 
-But we also don't want to allow breaching the child's sandbox arbitrarily:
+This is in fact perfectly OK, as long as we don't allow breaching the child's sandbox arbitrarily:
 
 ```scss
 // COUNTER-EXAMPLE; DON'T DO THIS
 .myapp-Header {
   > .myapp-LoginForm {
     color: blue;
+    padding: 20px;
   }
 }
 ```
 
-Because we'd lose our safety net of knowing our local changes can never have global repercussions. So where do we draw the line between what's OK and what's a no-no?
+We don't want to allow this, because we'd lose our safety net of knowing our local changes can never have global repercussions. So where do we draw the line between what's OK and what's a no-no?
 
 We want to respect the sandbox *inside* each child component, as we don't want to rely on its implementation details. It's a black box to us. What's *outside* the child component, conversely, is the sandbox of the parent, where it reigns supreme. The distinction between inside and outside emerges quite naturally from one of the most fundamental concepts in CSS: [the box model](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Box_Model/Introduction_to_the_CSS_box_model).
 
-TODO: image: box-model
+![CSS Box Model](box-model.png)
 
-My analogies are usually terrible, but here goes: just like *being inside a country* means being within its physical *borders*, we establish that a parent can effect styles on its (direct) children only outside the border of the component. That means properties related to positioning and dimensions (e.g. `position`, `margin`, `display`, `width`, `float`, `z-index` etc) are OK, while properties that reach inside the border (e.g. `border` itself, `padding`, `color`, `font` etc) are no-no.
+My analogies are terrible, but here goes: just like *being inside a country* means being within its physical borders, we establish that a parent can effect styles on its (direct) children only outside the border of the component. That means properties related to positioning and dimensions (e.g. `position`, `margin`, `display`, `width`, `float`, `z-index` etc) are OK, while properties that reach inside the border (e.g. `border` itself, `padding`, `color`, `font` etc) are a no-no.
 
 As a corollary, this is also very obviously forbidden:
 
@@ -367,8 +435,8 @@ As a corollary, this is also very obviously forbidden:
 
 There are a few interesting/boring edge cases, such as:
 
-* `box-shadow` - The effect is clearly rendered outside the border, then again a subtle shadow might be an integral part of the look-and-feel of the component.
-* `color`, `font` and other [inherited properties](https://developer.mozilla.org/en-US/docs/Web/CSS/inheritance) - `.myapp-Header > .myapp-LoginForm { color: red }` reaches into the insides of the child component, but on the other hand is functionally equivalent to `.myapp-Header { color: red; }`, which is OK by our other rules.
+* `box-shadow` - A specific type of shadow can be an integral part of the look-and-feel of a component, and thus it should contain those styles itself. Then again, the visual effect is clearly rendered outside the border, so it's going into its parent component's territory.
+* `color`, `font` and other [inherited properties](https://developer.mozilla.org/en-US/docs/Web/CSS/inheritance) - `.myapp-Header > .myapp-LoginForm { color: red }` reaches into the insides of the child component, but on the other hand can be functionally equivalent to `.myapp-Header { color: red; }`, which is OK by our other rules.
 * `display` - If the child component uses a [Flexbox](https://css-tricks.com/snippets/css/a-guide-to-flexbox/) layout, it's possibly relying on having `display: flex` set on its root element. However, the parent might choose to hide its child by setting `display: none` on it.
 
 The important thing to realize is that in these edge cases, you're not risking thermonuclear war, just introducing a tiny bit of the CSS cascade back into your styles. As with other things that are bad for you, enjoying the cascade *in moderation* is fine. For instance, taking a closer look at the last example, the [specificity contest](https://developer.mozilla.org/en-US/docs/Web/CSS/Specificity) works out exactly like you'd want it to: when the component is visible, `.myapp-LoginForm { display: flex }` is the most specific rule, and takes precedence. When the owner decides to hide it with `.myapp-Header-loginBoxHidden > .myapp-LoginBox { display: none }` that rule is more specific, and wins.
@@ -379,7 +447,7 @@ To avoid repetitive work, you sometimes need to share styles between components.
 
 As a concrete example, let's consider using some styles from [Bootstrap](http://getbootstrap.com/css/), as it's a perfect example of an annoying framework to work with. Considering everything we've talked about above, with regard to sharing a single global namespace for styles, and collisions being bad, Bootstrap will:
 
-* Export a ton of selectors (as of version 3.3.7, 2481 to be precise) to that namespace, whether you actually use them or not. (Fun aside: IE's up to version 9 can only process 4095 selectors before silently ignoring the rest. I've heard of people spending *days* debugging and wondering what the hell's going on.)
+* Export a ton of selectors (as of version 3.3.7, 2481 to be precise) to that namespace, whether you actually use them or not. (Fun aside: IE's up to version 9 can only process 4095 selectors before silently ignoring the rest. I've heard of people spending *days* debugging this wondering what the hell's going on.)
 * Use hard-coded class names such as `.btn` and `.table`. Can't imagine those ever being accidentally reused by some other developer or project. :sarcasm:
 
 Regardless, let's say we want to use Bootstrap as a basis for our `Button` component.
@@ -402,7 +470,7 @@ Consider [extending](http://sass-lang.com/documentation/file.SASS_REFERENCE.html
 }
 ```
 
-This has the benefit of not giving anyone (including yourself) any ideas about relying on the presence of the ridiculously named `btn` class on the HTML component. The origin on of the styles that `Button` uses is an implementation detail that need not show on the outside at all. As a consequence, should you ever decide to ditch Bootstrap in favor of another framework (or just writing the styles yourself), the change won't be externally visible in any way (except, uhh, the visible changes in how `Button` *looks*).
+This has the benefit of not giving anyone (including yourself) any ideas about relying on the presence of the ridiculously named `btn` class on the HTML component. The origin of the styles that `Button` uses is an implementation detail that need not show on the outside at all. As a consequence, should you ever decide to ditch Bootstrap in favor of another framework (or just writing the styles yourself), the change won't be externally visible in any way (except, uhh, the visible changes in how `Button` looks).
 
 The same principle applies to your own helper classes, and there you'll have the option of using more sensible class names:
 
@@ -420,7 +488,7 @@ Or [forgoing emitting the class](http://sass-lang.com/documentation/file.SASS_RE
 }
 ```
 
-Finally, all CSS preprocessors support the concept of [mixins](http://sass-lang.com/documentation/file.SASS_REFERENCE.html#mixins), which allow you to more or less whatever you want:
+Finally, all CSS preprocessors support the concept of [mixins](http://sass-lang.com/documentation/file.SASS_REFERENCE.html#mixins), which are a tremendously powerful tool:
 
 ```scss
 .myapp-Button {
@@ -438,9 +506,9 @@ Finally, as mentioned before, when you understand the rules you've laid out (or 
 <button class="myapp-Button myapp-utils-button">
 ```
 
-That added value might be -- for instance -- that your test framework can then be more clever in automatically figuring out what things act as buttons, and can be clicked.
+That added value might be -- for instance -- that your test framework can then be more clever in automatically figuring out what things act as buttons, and can be clicked on.
 
-Or you might decide that it's OK to break component isolation when the breach is tiny, and the additional work from splitting components would be too great. While I'll want to remind you that it's a slippery slope, and that consistency is king, bla bla... as long as your team is in agreement, and you get stuff done, you're doing the right thing.
+Or you might decide that it's OK to break component isolation when the breach is tiny, and the additional work from splitting components would be too great. While I'll want to remind you that it's a slippery slope, and that consistency is king, as long as your team is in agreement, and you get stuff done, you're doing the right thing.
 
 ## License
 
