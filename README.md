@@ -429,7 +429,7 @@ We want to respect the sandbox *inside* each child component, as we don't want t
 
 ![CSS Box Model](box-model.png)
 
-My analogies are terrible, but here goes: just like *being inside a country* means being within its physical borders, we establish that a parent can effect styles on its (direct) children only outside the border of the component. That means properties related to positioning and dimensions (e.g. `position`, `margin`, `display`, `width`, `float`, `z-index` etc) are OK, while properties that reach inside the border (e.g. `border` itself, `padding`, `color`, `font` etc) are a no-no.
+My analogies are terrible, but here goes: just like *being inside a country* means being within its physical borders, we establish that a parent can affect styles on its (direct) children only outside the border of the component. That means properties related to positioning and dimensions (e.g. `position`, `margin`, `display`, `width`, `float`, `z-index` etc) are OK, while properties that reach inside the border (e.g. `border` itself, `padding`, `color`, `font` etc) are a no-no.
 
 As a corollary, this is also very obviously forbidden:
 
