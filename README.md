@@ -1,5 +1,9 @@
 # 8 simple rules for a robust, scalable CSS architecture
 
+### Translations
+
+- [Português (Brasil)](https://medium.com/tableless/8-regras-simples-para-uma-arquitetura-css-robusta-e-escal%C3%A1vel-545c6dade170)
+
 This is the manifest of things I've learned about managing CSS in large, complex web projects during my many years of professional web development. I've been asked about these things enough times that having a document to point to sounded like a good idea.
 
 I've tried to keep the explanations short, but this is essentially the tl;dr:
@@ -106,7 +110,7 @@ A robust, yet still tremendously simple solution to this is to wrap the entire s
 .myapp-Header {
   background: black;
   color: white;
-  
+
   &-link {
     color: blue;
   }
