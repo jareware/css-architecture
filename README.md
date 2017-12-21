@@ -3,6 +3,7 @@
 ### Translations
 
 - [Português (Brasil)](https://medium.com/tableless/8-regras-simples-para-uma-arquitetura-css-robusta-e-escal%C3%A1vel-545c6dade170)
+- [Chinese](http://www.jianshu.com/p/acb4b9d8ff4f)
 
 This is the manifest of things I've learned about managing CSS in large, complex web projects during my many years of professional web development. I've been asked about these things enough times that having a document to point to sounded like a good idea.
 
